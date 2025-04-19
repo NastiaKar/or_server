@@ -44,32 +44,28 @@ def upload_reference():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    global reference_descriptors, reference_keypoints, reference_image
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({
+                'status': 'fail',
+                'reason': 'request.get_json() returned None',
+                'content_type': request.headers.get('Content-Type'),
+                'raw_body': request.data.decode('utf-8', errors='replace'),
+            }), 400
 
-    if reference_descriptors is None:
-        return jsonify({'error': 'No reference uploaded'}), 400
-
-    data = request.get_json()
-    if data is None:
         return jsonify({
-            'error': 'Invalid or missing JSON in analyze',
-            'raw_request': request.data.decode('utf-8', errors='ignore'),
-            'headers': dict(request.headers)
-        }), 400
+            'status': 'ok',
+            'keys': list(data.keys()),
+            'example_value_start': str(data)[:200],
+            'content_type': request.headers.get('Content-Type'),
+        }), 200
 
-    base64_img = data.get('image') or data.get('imageBase64')
-    if not base64_img:
+    except Exception as e:
         return jsonify({
-            'error': 'Missing image data',
-            'received_keys': list(data.keys()),
-            'raw_data_sample': str(data)[:300]
-        }), 400
-
-    return jsonify({
-        'status': 'OK',
-        'length': len(base64_img),
-        'keys': list(data.keys())
-    })
+            'status': 'exception',
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
